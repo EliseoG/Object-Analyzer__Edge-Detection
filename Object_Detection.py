@@ -2,7 +2,6 @@
 
 '''
 Takes an image, scans it, and determines if it is a brick, cylinder, or ball.
-Note - Some methods were taken from the provided Jupyter Notebooks.
 '''
 
 import numpy as np
@@ -11,17 +10,67 @@ import numpy as np
 def convert_to_grayscale(im): 
     return np.mean(im, axis = 2)
 
-# Scan Image
+# Scale Image
 def scale_image_255(im):
     #Scale an image 0-1 values.
     return (im/255)
 
+# Matrix Processor.
+def getKx():
+    return np.array([[1, 0, -1],
+               [2, 0, -2],
+               [1, 0, -1]])
+
+# Matrix Processor.
+def getKy():
+    return np.array([[1, 2, 1],
+               [0, 0, 0],
+               [-1, -2, -1]])
+
+def filter_2d(im, kernel):
+    '''    
+    Filter an image by taking the dot product of each 
+    image neighborhood with the kernel matrix.
+    Args:
+    im = (H x W) grayscale floating point image
+    kernel = (M x N) matrix, smaller than im
+    Returns: 
+    (H-M+1 x W-N+1) filtered image.
+    '''
+
+    M = kernel.shape[0] 
+    N = kernel.shape[1]
+    H = im.shape[0]
+    W = im.shape[1]
+    
+    filtered_image = np.zeros((H-M+1, W-N+1), dtype = 'float64')
+    
+    brightPx = 0;
+        
+    for i in range(filtered_image.shape[0]):
+        for j in range(filtered_image.shape[1]):
+            image_patch = im[i:i+M, j:j+N]
+            filtered_image[i, j] = np.sum(np.multiply(image_patch, kernel))
+            if filtered_image[i, j] < -1:
+                brightPx += 1
+            
+    return filtered_image
+
+def sobel_vertical(im1):
+    #Get left and right matrices to be subtracted.
+    # right column - left column
+    a = im1[:,2:] - im1[:,:-2]
+    #Make it crisp!
+    #Add -1 left, -1 right, and -2 middle row.
+    # [-1 0 -1]
+    # [-2 0 -1]
+    # [-1 0 -1]
+    b = 2*a[1:-1] + a[2:] +  a[:-2]
+    return b
+
 # Map points on graph
 def mapPoints(edges):
-    '''
-    From Jupyter Notebooks
-    
-
+    ''' 
     Parameters
     ----------
     edges : TYPE
@@ -31,8 +80,8 @@ def mapPoints(edges):
     -------
     accumulator : TYPE
         DESCRIPTION.
-
     '''
+    
     y_coords, x_coords = np.where(edges)
     y_coords_flipped = edges.shape[0] - y_coords
     
@@ -75,59 +124,6 @@ def mapPoints(edges):
     rho_max_indices, theta_max_indices,  = np.where(accumulator > relative_thresh * max_value)
     
     return accumulator
-
-def getKx():
-    return np.array([[1, 0, -1],
-               [2, 0, -2],
-               [1, 0, -1]])
-def getKy():
-    return np.array([[1, 2, 1],
-               [0, 0, 0],
-               [-1, -2, -1]])
-
-def filter_2d(im, kernel):
-    '''
-    From Jupyter Notebooks.
-    
-    Filter an image by taking the dot product of each 
-    image neighborhood with the kernel matrix.
-    Args:
-    im = (H x W) grayscale floating point image
-    kernel = (M x N) matrix, smaller than im
-    Returns: 
-    (H-M+1 x W-N+1) filtered image.
-    '''
-
-    M = kernel.shape[0] 
-    N = kernel.shape[1]
-    H = im.shape[0]
-    W = im.shape[1]
-    
-    filtered_image = np.zeros((H-M+1, W-N+1), dtype = 'float64')
-    
-    brightPx = 0;
-    
-    
-    for i in range(filtered_image.shape[0]):
-        for j in range(filtered_image.shape[1]):
-            image_patch = im[i:i+M, j:j+N]
-            filtered_image[i, j] = np.sum(np.multiply(image_patch, kernel))
-            if filtered_image[i, j] < -1:
-                brightPx += 1
-            
-    return filtered_image
-
-def sobel_vertical(im1):
-    #Get left and right matrices to be subtracted.
-    # right column - left column
-    a = im1[:,2:] - im1[:,:-2]
-    #Make it crisp!
-    #Add -1 left, -1 right, and -2 middle row.
-    # [-1 0 -1]
-    # [-2 0 -1]
-    # [-1 0 -1]
-    b = 2*a[1:-1] + a[2:] +  a[:-2]
-    return b
 
 def classify(im2):
     
